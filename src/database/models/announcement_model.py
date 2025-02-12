@@ -4,6 +4,8 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import INTEGER, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.database.models.category_model import Category  # noqa
+
 from ...schemas.announcement_schemas import AnnouncementStatus
 from ..models.base_model import BaseModel, CreatedAtMixin, IdPkUUIDMixin, UpdatedAtMixin
 

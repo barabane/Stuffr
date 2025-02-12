@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -24,6 +26,11 @@ class LogDecoratorScheme(BaseModel):
     @classmethod
     def validate(cls, v: int):
         return f'{v} ms'
+
+
+class LogMessageScheme(BaseModel):
+    message: str
+    timestamp: Optional[datetime] = datetime.now()
 
 
 class CustomFormatter(logging.Formatter):

@@ -20,11 +20,7 @@ class GetAnnouncementScheme(BaseModel):
     description: str
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
-    status: Optional[AnnouncementStatus] = Field(
-        max_length=15, default=AnnouncementStatus.UNDER_REVIEW
-    )
     user_id: str | uuid.UUID
-    category_id: int = Field(ge=1)
 
 
 class CreateAnnouncementScheme(BaseModel):

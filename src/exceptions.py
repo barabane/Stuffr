@@ -26,6 +26,11 @@ class NotFoundException(HTTPException):
         super().__init__(status_code=status_code if status_code else 404, detail=detail)
 
 
+class ForbiddenException(HTTPException):
+    def __init__(self, status_code: int = None, detail='Forbidden'):
+        super().__init__(status_code=status_code if status_code else 403, detail=detail)
+
+
 class TokenExpiredException(InvalidHTTPException):
     def __init__(self, detail='Время действия токена истекло'):
         super().__init__(detail=detail)
@@ -48,4 +53,9 @@ class UserDoesNotExistsException(NotFoundException):
 
 class InvalidCredentialsException(BadRequestException):
     def __init__(self, detail='Неправильная почта или пароль'):
+        super().__init__(detail=detail)
+
+
+class UserForbiddenException(ForbiddenException):
+    def __init__(self, detail='Недостаточно прав для использования'):
         super().__init__(detail=detail)
