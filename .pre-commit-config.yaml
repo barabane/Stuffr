@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Check with Fix
+        entry: ruff check --fix
+        language: python
+        types: [python]
+        additional_dependencies: [ruff]
+
+      - id: ruff-format
+        name: Ruff Format
+        entry: ruff format
+        language: python
+        types: [python]
+        additional_dependencies: [ruff]
