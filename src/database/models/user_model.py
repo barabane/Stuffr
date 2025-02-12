@@ -4,6 +4,8 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY, FLOAT, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src.database.models.role_model import Role  # noqa
+
 from ..models.base_model import BaseModel, IdPkUUIDMixin, MutableList
 
 
