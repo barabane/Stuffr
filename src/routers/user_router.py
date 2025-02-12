@@ -32,6 +32,8 @@ async def register_user(
         email=user_credentials.email, session=session
     )
 
+    raise Exception
+
     if user_exists:
         raise UserAlreadyExistsException
 
