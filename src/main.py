@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.middlewares.logging_middleware import logging_middleware
+from src.routers.announcement_router import announcement_router
 from src.routers.user_router import user_router
 
 
@@ -27,3 +28,4 @@ async def internal_server_error_custom_handler(
 app.add_middleware(BaseHTTPMiddleware, dispatch=logging_middleware)
 
 app.include_router(user_router)
+app.include_router(announcement_router)
