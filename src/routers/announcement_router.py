@@ -45,4 +45,18 @@ async def approve_announcement(
     announcement_model = await announcement_service.approve(
         announcement_id, user=user, session=session
     )
-    return GetAnnouncementScheme(**announcement_model.__dict__)
+    return announcement_service.schemas.get_scheme(**announcement_model.__dict__)
+
+
+@announcement_router.patch('/decline', response_model=GetAnnouncementScheme)
+@protect(role_id=2)
+async def decline_announcement(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    announcement_model = await announcement_service.decline(
+        announcement_id, user=user, session=session
+    )
+    return announcement_service.schemas.get_scheme(**announcement_model.__dict__)

@@ -17,15 +17,37 @@ class AnnouncementService(BaseService):
         super().__init__(repository=repository, schemas=schemas)
 
     @logger_decorator
-    async def approve(self, announcement_id: str, user: User, session: AsyncSession):
+    async def approve(
+        self, announcement_id: str, user: User, session: AsyncSession
+    ) -> Announcement:
         announcement: Announcement = await session.get(
             self.repository.model, announcement_id
         )
         announcement.status = AnnouncementStatus.PUBLISHED.value
         logger.info(
             LogMessageScheme(
-                message=f"Объявление id={announcement_id} переведено \
-                    в статус 'Опубликовано' администратором id={user.id}"
+                message=(
+                    f'Объявление id={announcement_id} '
+                    f'опубликовано администратором id={user.id}'
+                )
+            ).model_dump_json(indent=2)
+        )
+        return announcement
+
+    @logger_decorator
+    async def decline(
+        self, announcement_id: str, user: User, session: AsyncSession
+    ) -> Announcement:
+        announcement: Announcement = await session.get(
+            self.repository.model, announcement_id
+        )
+        announcement.status = AnnouncementStatus.DECLINE.value
+        logger.info(
+            LogMessageScheme(
+                message=(
+                    f'Объявление id={announcement_id} '
+                    f'отправлено на доработку администратором id={user.id}'
+                )
             ).model_dump_json(indent=2)
         )
         return announcement

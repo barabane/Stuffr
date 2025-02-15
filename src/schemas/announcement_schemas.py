@@ -9,7 +9,7 @@ from src.schemas.base_schemas import BaseSchemas
 
 class AnnouncementStatus(Enum):
     UNDER_REVIEW = 'UNDER_REVIEW'
-    UNDER_REVISION = 'UNDER_REVISION'
+    DECLINE = 'DECLINE'
     PUBLISHED = 'PUBLISHED'
     CLOSED = 'CLOSED'
 
