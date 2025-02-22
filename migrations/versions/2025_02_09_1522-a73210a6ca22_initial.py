@@ -120,13 +120,6 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint('announcement_id'),
     )
-    sa.insert(
-        table_name='role',
-        values=[
-            {'id': 1, 'name': 'Пользователь'},
-            {'id': 2, 'name': 'Менеджер'},
-        ],
-    )
     # ### end Alembic commands ###
 
 

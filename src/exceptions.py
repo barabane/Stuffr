@@ -59,3 +59,13 @@ class InvalidCredentialsException(BadRequestException):
 class UserForbiddenException(ForbiddenException):
     def __init__(self, detail='Недостаточно прав для использования'):
         super().__init__(detail=detail)
+
+
+class PasswordsNotMatchException(BadRequestException):
+    def __init__(self, detail='Пароли не совпадают'):
+        super().__init__(detail=detail)
+
+
+class ChangePasswordException(HTTPException):
+    def __init__(self, status_code: int = None, detail='Ошибка при смене пароля'):
+        super().__init__(status_code=status_code if status_code else 500, detail=detail)

@@ -16,6 +16,11 @@ class RegisterUserCredentials(LoginUserCredentials):
     second_name: Optional[str] = Field(min_length=3, max_length=30, default=None)
 
 
+class ChangePasswordCredentials(BaseModel):
+    new_password: str = Field(min_length=8, max_length=20)
+    repeat_new_password: str = Field(min_length=8, max_length=20)
+
+
 class GetUserScheme(BaseModel):
     id: str | uuid.UUID
     name: str = Field(min_length=3, max_length=30)
