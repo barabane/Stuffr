@@ -26,8 +26,10 @@ class BaseService(ABC):
         return await self.repository.get_one(entity_id=entity_id, session=session)
 
     @logger_decorator
-    async def get_all(self, session: AsyncSession) -> List[BaseModel]:
-        return await self.repository.get_all(session=session)
+    async def get_all(
+        self, session: AsyncSession, filters: dict = None
+    ) -> List[BaseModel]:
+        return await self.repository.get_all(filters=filters, session=session)
 
     @logger_decorator
     async def update(

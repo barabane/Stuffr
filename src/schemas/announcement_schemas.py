@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from src.schemas.base_schemas import BaseSchemas
+from src.schemas.common import OffsetLimitParams
 
 
 class AnnouncementStatus(Enum):
@@ -14,6 +15,17 @@ class AnnouncementStatus(Enum):
     CLOSED = 'CLOSED'
 
 
+class SearchParams(OffsetLimitParams):
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    sort_by: Optional[str] = 'updated_at'
+    category_id: Optional[int] = None
+
+
+class SearchParamsProfile(OffsetLimitParams):
+    pass
+
+
 class GetAnnouncementScheme(BaseModel):
     id: str | uuid.UUID
     title: str = Field(min_length=3, max_length=100)
@@ -21,6 +33,10 @@ class GetAnnouncementScheme(BaseModel):
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     user_id: str | uuid.UUID
+
+
+class GetMyAnnouncementScheme(GetAnnouncementScheme):
+    status: Optional[str] = Field(max_length=15)
 
 
 class CreateAnnouncementScheme(BaseModel):
