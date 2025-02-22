@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,8 +8,12 @@ from src.database.database import get_async_session
 from src.database.models.user_model import User
 from src.dependencies import get_current_user
 from src.schemas.announcement_schemas import (
+    AnnouncementStatus,
     CreateAnnouncementScheme,
     GetAnnouncementScheme,
+    GetMyAnnouncementScheme,
+    SearchParams,
+    SearchParamsProfile,
 )
 from src.services.announcement_service import (
     AnnouncementService,
@@ -60,3 +66,40 @@ async def decline_announcement(
         announcement_id, user=user, session=session
     )
     return announcement_service.schemas.get_scheme(**announcement_model.__dict__)
+
+
+@announcement_router.get('', response_model=List[GetAnnouncementScheme])
+async def get_announcement_catalog(
+    search_params: SearchParams = Depends(),
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    session: AsyncSession = Depends(get_async_session),
+) -> List[GetAnnouncementScheme]:
+    filters = search_params.model_dump()
+    filters['status'] = AnnouncementStatus.PUBLISHED.value
+
+    return [
+        announcement_service.schemas.get_scheme(**announcement_model.__dict__)
+        for announcement_model in await announcement_service.get_all(
+            filters=filters, session=session
+        )
+    ]
+
+
+@announcement_router.get(
+    '/my_announcements', response_model=List[GetMyAnnouncementScheme]
+)
+async def get_my_announcements(
+    search_params: SearchParamsProfile = Depends(),
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> List[GetMyAnnouncementScheme]:
+    filters = search_params.model_dump()
+    filters['user_id'] = user.id
+
+    return [
+        GetMyAnnouncementScheme(**announcement_model.__dict__)
+        for announcement_model in await announcement_service.get_all(
+            filters=filters, session=session
+        )
+    ]

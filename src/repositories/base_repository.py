@@ -1,7 +1,7 @@
 from abc import ABC
 
 import pydantic
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import and_, delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models.base_model import BaseModel
@@ -30,10 +30,34 @@ class BaseRepository(ABC):
         )
 
     @logger_decorator
-    async def get_all(self, session: AsyncSession):
-        return await self._execute_scalars_all(
-            query=select(self.model), session=session
-        )
+    async def get_all(self, session: AsyncSession, filters: dict = None):
+        query = select(self.model)
+
+        if not filters:
+            return await self._execute_scalars_all(query=query, session=session)
+
+        offset = filters.get('offset', None)
+        limit = filters.get('limit', None)
+        order_by = filters.get('sort_by')
+        if offset:
+            del filters['offset']
+        if limit:
+            del filters['limit']
+        if order_by:
+            del filters['sort_by']
+
+        filters = self.__process_filters(filters=filters)
+        query = query.filter(*filters)
+        if order_by:
+            query = query.order_by(getattr(self.model, order_by))
+
+        if offset:
+            query = query.offset(offset)
+
+        if limit:
+            query = query.limit(limit)
+
+        return await self._execute_scalars_all(query=query, session=session)
 
     @logger_decorator
     async def update(
@@ -66,6 +90,31 @@ class BaseRepository(ABC):
 
     async def _execute_without_result(self, query, session: AsyncSession):
         await session.execute(query)
+
+    def __process_filters(self, filters: dict):
+        result_filters = []
+
+        if filters.get('price_min', None) and filters.get('price_max', None):
+            result_filters.append(
+                and_(
+                    getattr(self.model, 'price') >= filters.get('price_min'),
+                    getattr(self.model, 'price') <= filters.get('price_max'),
+                )
+            )
+        elif filters.get('price_min', None):
+            result_filters.append(
+                getattr(self.model, 'price') >= filters.get('price_min')
+            )
+        elif filters.get('price_max', None):
+            result_filters.append(
+                getattr(self.model, 'price') <= filters.get('price_max')
+            )
+
+        for key, value in filters.items():
+            if value and hasattr(self.model, key):
+                result_filters.append(getattr(self.model, key) == value)
+
+        return result_filters
 
 
 def get_base_repository() -> BaseRepository:
