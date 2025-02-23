@@ -48,6 +48,7 @@ async def register_user(
     new_user: User = await user_service.add(
         entity=CreateUserScheme(
             name=user_credentials.name,
+            second_name=user_credentials.second_name,
             email=user_credentials.email,
             hashed_password=hashed_password,
         ),
