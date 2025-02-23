@@ -19,6 +19,7 @@ from src.services.announcement_service import (
     AnnouncementService,
     get_announcement_service,
 )
+from src.utils.cache import redis_cache
 from src.utils.decorators import protect
 
 announcement_router = APIRouter(prefix='/announcement', tags=['Announcement'])
@@ -77,12 +78,24 @@ async def get_announcement_catalog(
     filters = search_params.model_dump()
     filters['status'] = AnnouncementStatus.PUBLISHED.value
 
-    return [
+    cache_key = f'announcements:{search_params.offset}{search_params.limit}'
+    cached_values = await redis_cache.get(key=cache_key)
+
+    if cached_values:
+        return [
+            announcement_service.schemas.get_scheme(**announcement_dict)
+            for announcement_dict in cached_values
+        ]
+
+    announcements = [
         announcement_service.schemas.get_scheme(**announcement_model.__dict__)
         for announcement_model in await announcement_service.get_all(
             filters=filters, session=session
         )
     ]
+
+    await redis_cache.set(key=cache_key, value=announcements)
+    return announcements
 
 
 @announcement_router.get(
@@ -97,9 +110,21 @@ async def get_my_announcements(
     filters = search_params.model_dump()
     filters['user_id'] = user.id
 
-    return [
+    cache_key = f'announcements:{search_params.offset}{search_params.limit}{user.id}'
+    cached_values = await redis_cache.get(key=cache_key)
+
+    if cached_values:
+        return [
+            GetMyAnnouncementScheme(**announcement_dict)
+            for announcement_dict in cached_values
+        ]
+
+    announcements = [
         GetMyAnnouncementScheme(**announcement_model.__dict__)
         for announcement_model in await announcement_service.get_all(
             filters=filters, session=session
         )
     ]
+
+    await redis_cache.set(key=cache_key, value=announcements)
+    return announcements

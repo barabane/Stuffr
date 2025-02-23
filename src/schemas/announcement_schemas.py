@@ -1,11 +1,10 @@
-import uuid
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
 from src.schemas.base_schemas import BaseSchemas
-from src.schemas.common import OffsetLimitParams
+from src.schemas.common import OffsetLimitParams, StringUUIDField
 
 
 class AnnouncementStatus(Enum):
@@ -27,12 +26,12 @@ class SearchParamsProfile(OffsetLimitParams):
 
 
 class GetAnnouncementScheme(BaseModel):
-    id: str | uuid.UUID
+    id: StringUUIDField
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
-    user_id: str | uuid.UUID
+    user_id: StringUUIDField
 
 
 class GetMyAnnouncementScheme(GetAnnouncementScheme):
@@ -44,7 +43,7 @@ class CreateAnnouncementScheme(BaseModel):
     description: str
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
-    user_id: str | uuid.UUID
+    user_id: StringUUIDField
     category_id: int = Field(ge=1)
 
 
