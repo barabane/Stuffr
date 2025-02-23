@@ -7,13 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.database import get_async_session
 from src.database.models.user_model import User
 from src.dependencies import get_current_user
+from src.exceptions import AnnouncementUnderReviewException, NotFoundException
 from src.schemas.announcement_schemas import (
     AnnouncementStatus,
-    CreateAnnouncementScheme,
+    CreateAnnouncementOuterScheme,
     GetAnnouncementScheme,
     GetMyAnnouncementScheme,
     SearchParams,
     SearchParamsProfile,
+    UpdateAnnouncementOuterScheme,
 )
 from src.services.announcement_service import (
     AnnouncementService,
@@ -25,15 +27,18 @@ from src.utils.decorators import protect
 announcement_router = APIRouter(prefix='/announcement', tags=['Announcement'])
 
 
-@announcement_router.post('')
+@announcement_router.post('', tags=['AnnouncementUser'])
 async def create_announcement(
-    announcement_scheme: CreateAnnouncementScheme,
+    announcement_scheme: CreateAnnouncementOuterScheme,
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
     announcement_scheme.user_id = user.id
-    await announcement_service.add(announcement_scheme, session=session)
+    await announcement_service.add(
+        announcement_service.schemas.create_scheme(**announcement_scheme.model_dump()),
+        session=session,
+    )
 
     return JSONResponse(
         status_code=201,
@@ -41,7 +46,41 @@ async def create_announcement(
     )
 
 
-@announcement_router.patch('/approve', response_model=GetAnnouncementScheme)
+@announcement_router.patch('/edit/{announcement_id}', tags=['AnnouncementUser'])
+async def edit_announcement(
+    announcement_id: str,
+    announcement_scheme: UpdateAnnouncementOuterScheme,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    announcement_model = await session.get(
+        announcement_service.repository.model, announcement_id
+    )
+
+    if not announcement_model:
+        raise NotFoundException(detail='Такого объявления не существует')
+
+    if announcement_model.status == AnnouncementStatus.UNDER_REVIEW.value:
+        raise AnnouncementUnderReviewException
+
+    await announcement_service.update(
+        entity=announcement_service.schemas.update_scheme(
+            **announcement_scheme.model_dump()
+        ),
+        entity_id=announcement_id,
+        session=session,
+    )
+
+    return JSONResponse(
+        status_code=201,
+        content={'details': 'Ваше объявление отправлено на модерацию'},
+    )
+
+
+@announcement_router.patch(
+    '/approve', response_model=GetAnnouncementScheme, tags=['AnnouncementAdmin']
+)
 @protect(role_id=2)
 async def approve_announcement(
     announcement_id: str,
@@ -55,7 +94,9 @@ async def approve_announcement(
     return announcement_service.schemas.get_scheme(**announcement_model.__dict__)
 
 
-@announcement_router.patch('/decline', response_model=GetAnnouncementScheme)
+@announcement_router.patch(
+    '/decline', response_model=GetAnnouncementScheme, tags=['AnnouncementAdmin']
+)
 @protect(role_id=2)
 async def decline_announcement(
     announcement_id: str,
@@ -69,7 +110,9 @@ async def decline_announcement(
     return announcement_service.schemas.get_scheme(**announcement_model.__dict__)
 
 
-@announcement_router.get('', response_model=List[GetAnnouncementScheme])
+@announcement_router.get(
+    '', response_model=List[GetAnnouncementScheme], tags=['AnnouncementUser']
+)
 async def get_announcement_catalog(
     search_params: SearchParams = Depends(),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
@@ -99,7 +142,9 @@ async def get_announcement_catalog(
 
 
 @announcement_router.get(
-    '/my_announcements', response_model=List[GetMyAnnouncementScheme]
+    '/my_announcements',
+    response_model=List[GetMyAnnouncementScheme],
+    tags=['AnnouncementUser'],
 )
 async def get_my_announcements(
     search_params: SearchParamsProfile = Depends(),
@@ -128,3 +173,31 @@ async def get_my_announcements(
 
     await redis_cache.set(key=cache_key, value=announcements)
     return announcements
+
+
+@announcement_router.patch(
+    '/archive/{announcement_id}',
+    tags=['AnnouncementUser'],
+)
+async def archive_announcement(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.archive_announcement(
+        announcement_id=announcement_id, session=session
+    )
+
+
+@announcement_router.delete(
+    '/delete/{announcement_id}',
+    tags=['AnnouncementUser'],
+)
+async def delete_announcement(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.delete(entity_id=announcement_id, session=session)

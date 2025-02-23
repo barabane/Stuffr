@@ -17,6 +17,13 @@ class AnnouncementService(BaseService):
         super().__init__(repository=repository, schemas=schemas)
 
     @logger_decorator
+    async def archive_announcement(self, announcement_id: str, session: AsyncSession):
+        announcement: Announcement = await session.get(
+            self.repository.model, announcement_id
+        )
+        announcement.status = AnnouncementStatus.ARCHIVED.value
+
+    @logger_decorator
     async def approve(
         self, announcement_id: str, user: User, session: AsyncSession
     ) -> Announcement:

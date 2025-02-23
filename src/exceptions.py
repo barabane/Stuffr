@@ -18,7 +18,7 @@ class ConflictException(HTTPException):
 
 class BadRequestException(HTTPException):
     def __init__(self, status_code: int = None, detail='Bad request'):
-        super().__init__(status_code=status_code if status_code else 402, detail=detail)
+        super().__init__(status_code=status_code if status_code else 400, detail=detail)
 
 
 class NotFoundException(HTTPException):
@@ -69,3 +69,8 @@ class PasswordsNotMatchException(BadRequestException):
 class ChangePasswordException(HTTPException):
     def __init__(self, status_code: int = None, detail='Ошибка при смене пароля'):
         super().__init__(status_code=status_code if status_code else 500, detail=detail)
+
+
+class AnnouncementUnderReviewException(BadRequestException):
+    def __init__(self, detail='Объявление находится на модерации'):
+        super().__init__(detail=detail)
