@@ -79,7 +79,7 @@ async def register_user(
         samesite='strict',
     )
 
-    return new_user
+    return user_service.schemas.get_scheme(**new_user.__dict__)
 
 
 @user_router.post('/login')
@@ -125,7 +125,7 @@ async def login_user(
         samesite='strict',
     )
 
-    return user
+    return user_service.schemas.get_scheme(**user.__dict__)
 
 
 @user_router.post('/forgot_password')

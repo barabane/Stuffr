@@ -26,11 +26,9 @@ class GetUserScheme(BaseModel):
     name: str = Field(min_length=3, max_length=30)
     second_name: Optional[str] = Field(min_length=3, max_length=30, default=None)
     avatar_url: Optional[HttpUrl] = None
-    role_id: int = Field(ge=1, default=1)
     rating: Optional[float] = None
     email: EmailStr = Field(max_length=50)
     phone: Optional[str] = Field(max_length=20, default=None)
-    refresh_tokens: List[str] = []
 
 
 class CreateUserScheme(BaseModel):
