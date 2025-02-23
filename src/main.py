@@ -3,14 +3,18 @@ from fastapi.concurrency import asynccontextmanager
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from src.config import settings
 from src.middlewares.logging_middleware import logging_middleware
 from src.routers.announcement_router import announcement_router
 from src.routers.user_router import user_router
+from src.utils.cache import redis_cache
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    await redis_cache.init(url=settings.REDIS_URL)
     yield
+    await redis_cache.close()
 
 
 app = FastAPI(title='Stuffr 🐶', lifespan=lifespan)

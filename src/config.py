@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     RESET_PASSWORD_URL: str
 
+    REDIS_URL: str
+
     model_config = SettingsConfigDict(env_file='.env')
 
 
