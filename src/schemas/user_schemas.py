@@ -54,16 +54,16 @@ class UpdateUserScheme(BaseModel):
 
 class UserSchemas(BaseSchemas):
     def __init__(
-        self, get_scheme: BaseModel, crate_scheme: BaseModel, update_scheme: BaseModel
+        self, get_scheme: BaseModel, create_scheme: BaseModel, update_scheme: BaseModel
     ):
         self.get_scheme = get_scheme
-        self.crate_scheme = crate_scheme
+        self.create_scheme = create_scheme
         self.update_scheme = update_scheme
 
 
 def get_user_schemas() -> UserSchemas:
     return UserSchemas(
         get_scheme=GetUserScheme,
-        crate_scheme=CreateUserScheme,
+        create_scheme=CreateUserScheme,
         update_scheme=UpdateUserScheme,
     )

@@ -12,6 +12,7 @@ class AnnouncementStatus(Enum):
     DECLINE = 'DECLINE'
     PUBLISHED = 'PUBLISHED'
     CLOSED = 'CLOSED'
+    ARCHIVED = 'ARCHIVED'
 
 
 class SearchParams(OffsetLimitParams):
@@ -38,38 +39,44 @@ class GetMyAnnouncementScheme(GetAnnouncementScheme):
     status: Optional[str] = Field(max_length=15)
 
 
-class CreateAnnouncementScheme(BaseModel):
+class CreateAnnouncementOuterScheme(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
+    category_id: int = Field(ge=1)
+
+
+class CreateAnnouncementScheme(CreateAnnouncementOuterScheme):
     user_id: StringUUIDField
-    category_id: int = Field(ge=1)
 
 
-class UpdateAnnouncementScheme(BaseModel):
+class UpdateAnnouncementOuterScheme(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
-    status: Optional[AnnouncementStatus] = Field(
-        max_length=15, default=AnnouncementStatus.UNDER_REVIEW
-    )
     category_id: int = Field(ge=1)
+
+
+class UpdateAnnouncementScheme(UpdateAnnouncementOuterScheme):
+    status: Optional[str] = Field(
+        max_length=15, default=AnnouncementStatus.UNDER_REVIEW.value
+    )
 
 
 class AnnouncementSchemas(BaseSchemas):
     def __init__(
-        self, get_scheme: BaseModel, crate_scheme: BaseModel, update_scheme: BaseModel
+        self, get_scheme: BaseModel, create_scheme: BaseModel, update_scheme: BaseModel
     ):
         self.get_scheme = get_scheme
-        self.crate_scheme = crate_scheme
+        self.create_scheme = create_scheme
         self.update_scheme = update_scheme
 
 
 def get_announcement_schemas() -> AnnouncementSchemas:
     return AnnouncementSchemas(
         get_scheme=GetAnnouncementScheme,
-        crate_scheme=CreateAnnouncementScheme,
+        create_scheme=CreateAnnouncementScheme,
         update_scheme=UpdateAnnouncementScheme,
     )

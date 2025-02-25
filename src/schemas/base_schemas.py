@@ -15,16 +15,16 @@ class UpdateBaseScheme(BaseModel):
 
 class BaseSchemas:
     def __init__(
-        self, get_scheme: BaseModel, crate_scheme: BaseModel, update_scheme: BaseModel
+        self, get_scheme: BaseModel, create_scheme: BaseModel, update_scheme: BaseModel
     ):
         self.get_scheme: BaseModel = get_scheme
-        self.crate_scheme: BaseModel = crate_scheme
+        self.create_scheme: BaseModel = create_scheme
         self.update_scheme: BaseModel = update_scheme
 
 
 def get_base_schemas() -> BaseSchemas:
     return BaseSchemas(
         get_scheme=GetBaseScheme,
-        crate_scheme=CreateBaseScheme,
+        create_scheme=CreateBaseScheme,
         update_scheme=UpdateBaseScheme,
     )
