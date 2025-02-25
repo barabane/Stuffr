@@ -17,6 +17,7 @@ from src.exceptions import (
 from src.schemas.user_schemas import (
     ChangePasswordCredentials,
     CreateUserScheme,
+    GetUserScheme,
     LoginUserCredentials,
     RegisterUserCredentials,
 )
@@ -55,30 +56,14 @@ async def register_user(
         session=session,
     )
 
-    access_token, refresh_token = TokenManager.get_tokens(
+    access_token, refresh_token = TokenManager.set_tokens(
         {
             'sub': str(new_user.id),
-        }
+        },
+        response=response,
     )
 
     new_user.refresh_tokens.append(refresh_token)
-
-    response.set_cookie(
-        key='stuffr_access',
-        value=access_token,
-        secure=True,
-        httponly=True,
-        samesite='strict',
-    )
-
-    response.set_cookie(
-        key='stuffr_refresh',
-        value=refresh_token,
-        secure=True,
-        httponly=True,
-        samesite='strict',
-    )
-
     return user_service.schemas.get_scheme(**new_user.__dict__)
 
 
@@ -101,30 +86,14 @@ async def login_user(
     ):
         raise InvalidCredentialsException
 
-    access_token, refresh_token = TokenManager.get_tokens(
+    access_token, refresh_token = TokenManager.set_tokens(
         {
             'sub': str(user.id),
-        }
+        },
+        response=response,
     )
 
     user.refresh_tokens.append(refresh_token)
-
-    response.set_cookie(
-        key='stuffr_access',
-        value=access_token,
-        secure=True,
-        httponly=True,
-        samesite='strict',
-    )
-
-    response.set_cookie(
-        key='stuffr_refresh',
-        value=refresh_token,
-        secure=True,
-        httponly=True,
-        samesite='strict',
-    )
-
     return user_service.schemas.get_scheme(**user.__dict__)
 
 
@@ -186,13 +155,11 @@ async def reset_password(
 async def logout(
     response: Response,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: GetUserScheme = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
     user.refresh_tokens.remove(request.cookies['stuffr_refresh'])
 
-    session.add(user)
-    await session.commit()
     response.delete_cookie('stuffr_access')
     response.delete_cookie('stuffr_refresh')
     return 200
