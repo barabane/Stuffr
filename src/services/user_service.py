@@ -53,8 +53,8 @@ class UserService(BaseService):
     ):
         return await self.repository._execute_scalars_all(
             query=select(Announcement)
-            .join(UserFavorite, UserFavorite.user_id == Announcement.user_id)
-            .where(UserFavorite.user_id == user.id),
+            .join(UserFavorite, UserFavorite.user_id == user.id)
+            .where(UserFavorite.announcement_id == Announcement.id),
             session=session,
         )
 

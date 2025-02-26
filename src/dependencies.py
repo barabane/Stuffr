@@ -10,6 +10,7 @@ from src.exceptions import (
     UnauthorizedException,
 )
 from src.logging import logger
+from src.utils.cache import redis_cache
 from src.utils.token_manager import TokenManager
 
 
@@ -50,3 +51,7 @@ async def get_current_user(response: Response, request: Request) -> User | None:
     except InvalidKeyError:
         logger.error('Invalid token error')
         raise GetTokenException
+
+
+async def get_cache():
+    yield redis_cache

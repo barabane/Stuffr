@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database import get_async_session
 from src.database.models.user_model import User
-from src.dependencies import get_current_user
+from src.dependencies import get_cache, get_current_user
 from src.exceptions import AnnouncementUnderReviewException, NotFoundException
 from src.schemas.announcement_schemas import (
     AnnouncementStatus,
@@ -22,7 +22,7 @@ from src.services.announcement_service import (
     AnnouncementService,
     get_announcement_service,
 )
-from src.utils.cache import redis_cache
+from src.utils.cache import RedisCache
 from src.utils.decorators import protect
 
 announcement_router = APIRouter(prefix='/announcement', tags=['Announcement'])
@@ -121,12 +121,13 @@ async def get_announcement_catalog(
     search_params: SearchParams = Depends(),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     session: AsyncSession = Depends(get_async_session),
+    cache: RedisCache = Depends(get_cache),
 ) -> List[GetAnnouncementScheme]:
     filters = search_params.model_dump()
     filters['status'] = AnnouncementStatus.PUBLISHED.value
 
     cache_key = f'announcements:{search_params.offset}{search_params.limit}'
-    cached_values = await redis_cache.get(key=cache_key)
+    cached_values = await cache.get(key=cache_key)
 
     if cached_values:
         return [
@@ -141,7 +142,7 @@ async def get_announcement_catalog(
         )
     ]
 
-    await redis_cache.set(key=cache_key, value=announcements)
+    await cache.set(key=cache_key, value=announcements)
     return announcements
 
 
@@ -155,12 +156,13 @@ async def get_my_announcements(
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
+    cache: RedisCache = Depends(get_cache),
 ) -> List[GetMyAnnouncementScheme]:
     filters = search_params.model_dump()
     filters['user_id'] = user.id
 
     cache_key = f'announcements:{search_params.offset}{search_params.limit}{user.id}'
-    cached_values = await redis_cache.get(key=cache_key)
+    cached_values = await cache.get(key=cache_key)
 
     if cached_values:
         return [
@@ -175,7 +177,7 @@ async def get_my_announcements(
         )
     ]
 
-    await redis_cache.set(key=cache_key, value=announcements)
+    await cache.set(key=cache_key, value=announcements)
     return announcements
 
 
