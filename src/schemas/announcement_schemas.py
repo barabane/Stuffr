@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from src.schemas.base_schemas import BaseSchemas
 from src.schemas.common import OffsetLimitParams, StringUUIDField
@@ -31,6 +31,8 @@ class GetAnnouncementScheme(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
+    price_with_discount: Optional[int] = None
+    discount: Optional[int] = Field(default=None, ge=1, le=99)
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     user_id: StringUUIDField
 
@@ -43,8 +45,16 @@ class CreateAnnouncementOuterScheme(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
+    discount: Optional[int] = Field(default=None, ge=1, le=99)
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     category_id: int = Field(ge=1)
+
+    @computed_field
+    @property
+    def price_with_discount(self) -> int:
+        if not self.discount:
+            return None
+        return round(self.price - round((self.price * self.discount) / 100))
 
 
 class CreateAnnouncementScheme(CreateAnnouncementOuterScheme):
@@ -55,8 +65,16 @@ class UpdateAnnouncementOuterScheme(BaseModel):
     title: str = Field(min_length=3, max_length=100)
     description: str
     price: Optional[int] = None
+    discount: Optional[int] = Field(default=None, ge=1, le=99)
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     category_id: int = Field(ge=1)
+
+    @computed_field
+    @property
+    def price_with_discount(self) -> int:
+        if not self.discount:
+            return None
+        return round(self.price - round((self.price * self.discount) / 100))
 
 
 class UpdateAnnouncementScheme(UpdateAnnouncementOuterScheme):

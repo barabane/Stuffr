@@ -11,6 +11,7 @@ from src.exceptions import AnnouncementUnderReviewException, NotFoundException
 from src.schemas.announcement_schemas import (
     AnnouncementStatus,
     CreateAnnouncementOuterScheme,
+    CreateAnnouncementScheme,
     GetAnnouncementScheme,
     GetMyAnnouncementScheme,
     SearchParams,
@@ -34,7 +35,10 @@ async def create_announcement(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
-    announcement_scheme.user_id = user.id
+    announcement_scheme = CreateAnnouncementScheme(
+        **announcement_scheme.model_dump(), user_id=user.id
+    )
+
     await announcement_service.add(
         announcement_service.schemas.create_scheme(**announcement_scheme.model_dump()),
         session=session,
