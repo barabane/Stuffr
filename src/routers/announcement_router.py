@@ -205,3 +205,37 @@ async def delete_announcement(
     session: AsyncSession = Depends(get_async_session),
 ):
     await announcement_service.delete(entity_id=announcement_id, session=session)
+
+
+@announcement_router.post('/add_favorite')
+async def add_to_favorite(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.add_to_favorite(
+        announcement_id=announcement_id, user=user, session=session
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={'details': 'Добавлено в список избранного'},
+    )
+
+
+@announcement_router.delete('/delete_favorite')
+async def delete_from_favorite(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.delete_from_favorite(
+        announcement_id=announcement_id, user=user, session=session
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={'details': 'Удалено из списка избранного'},
+    )

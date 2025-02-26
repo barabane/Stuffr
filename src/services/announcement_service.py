@@ -1,6 +1,8 @@
+from sqlalchemy import delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models.announcement_model import Announcement
+from src.database.models.user_favorite_model import UserFavorite
 from src.database.models.user_model import User
 from src.logging import LogMessageScheme, logger
 from src.repositories.announcement_repository import get_announcement_repository
@@ -58,6 +60,29 @@ class AnnouncementService(BaseService):
             ).model_dump_json(indent=2)
         )
         return announcement
+
+    @logger_decorator
+    async def add_to_favorite(
+        self, announcement_id: str, user: User, session: AsyncSession
+    ):
+        await self.repository._execute_without_result(
+            query=insert(UserFavorite).values(
+                user_id=user.id, announcement_id=announcement_id
+            ),
+            session=session,
+        )
+
+    @logger_decorator
+    async def delete_from_favorite(
+        self, announcement_id: str, user: User, session: AsyncSession
+    ):
+        await self.repository._execute_without_result(
+            query=delete(UserFavorite).where(
+                UserFavorite.user_id == user.id,
+                UserFavorite.announcement_id == announcement_id,
+            ),
+            session=session,
+        )
 
 
 def get_announcement_service() -> AnnouncementService:

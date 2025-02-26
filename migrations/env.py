@@ -11,6 +11,7 @@ from src.database.models.base_model import BaseModel
 from src.database.models.category_model import Category  # noqa
 from src.database.models.review_model import Review  # noqa
 from src.database.models.role_model import Role  # noqa
+from src.database.models.user_favorite_model import UserFavorite  # noqa
 from src.database.models.user_model import User  # noqa
 
 # this is the Alembic Config object, which provides

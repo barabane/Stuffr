@@ -14,6 +14,7 @@ from src.exceptions import (
     UserAlreadyExistsException,
     UserDoesNotExistsException,
 )
+from src.schemas.announcement_schemas import GetAnnouncementScheme
 from src.schemas.user_schemas import (
     ChangePasswordCredentials,
     CreateUserScheme,
@@ -163,3 +164,17 @@ async def logout(
     response.delete_cookie('stuffr_access')
     response.delete_cookie('stuffr_refresh')
     return 200
+
+
+@user_router.get('/user_favorite')
+async def get_user_favorite_list(
+    user_service: UserService = Depends(get_user_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    return [
+        GetAnnouncementScheme(**announcement.__dict__)
+        for announcement in await user_service.get_user_favorite(
+            user=user, session=session
+        )
+    ]
