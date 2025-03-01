@@ -1,5 +1,6 @@
 from fastapi import Request, Response
 from jwt.exceptions import ExpiredSignatureError, InvalidKeyError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database import session_maker
@@ -31,7 +32,12 @@ async def get_current_user(response: Response, request: Request) -> User | None:
                 )
             except ExpiredSignatureError:
                 logger.error('Token expired error')
-                user: User | None = await session.get(User, payload['sub'])
+                user = await session.execute(
+                    select(User).where(
+                        User.refresh_tokens.any(request.cookies['stuffr_refresh'])
+                    )
+                )
+                user = user.scalar_one()
                 user.refresh_tokens.remove(request.cookies['stuffr_refresh'])
                 await session.commit()
                 raise TokenExpiredException

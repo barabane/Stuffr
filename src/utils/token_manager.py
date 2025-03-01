@@ -32,8 +32,6 @@ class TokenManager:
             secure=True,
             httponly=True,
             samesite='strict',
-            expires=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRATION).seconds,
-            max_age=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRATION).seconds,
         )
 
         payload['exp'] = datetime.now(tz=pytz.timezone(pytz.utc.zone)) + timedelta(
@@ -49,12 +47,6 @@ class TokenManager:
             secure=True,
             httponly=True,
             samesite='strict',
-            expires=int(
-                timedelta(days=settings.REFRESH_TOKEN_EXPIRATION).total_seconds()
-            ),
-            max_age=int(
-                timedelta(days=settings.REFRESH_TOKEN_EXPIRATION).total_seconds()
-            ),
         )
 
         return access_token, refresh_token
