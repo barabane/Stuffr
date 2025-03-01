@@ -1,7 +1,10 @@
 from pydantic import EmailStr
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.database.models.announcement_model import Announcement
 from src.database.models.base_model import BaseModel
+from src.database.models.user_favorite_model import UserFavorite
 from src.database.models.user_model import User
 from src.exceptions import ChangePasswordException
 from src.repositories.user_repository import get_user_repository
@@ -41,6 +44,19 @@ class UserService(BaseService):
             raise ChangePasswordException
 
         return user
+
+    @logger_decorator
+    async def get_user_favorite(
+        self,
+        user: User,
+        session: AsyncSession,
+    ):
+        return await self.repository._execute_scalars_all(
+            query=select(Announcement)
+            .join(UserFavorite, UserFavorite.user_id == user.id)
+            .where(UserFavorite.announcement_id == Announcement.id),
+            session=session,
+        )
 
 
 def get_user_service() -> UserService:

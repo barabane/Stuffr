@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import settings
 from src.database.database import get_async_session
 from src.database.models.user_model import User
-from src.dependencies import get_current_user
+from src.dependencies import get_cache, get_current_user
 from src.exceptions import (
     GetTokenException,
     InvalidCredentialsException,
@@ -14,6 +14,7 @@ from src.exceptions import (
     UserAlreadyExistsException,
     UserDoesNotExistsException,
 )
+from src.schemas.announcement_schemas import GetAnnouncementScheme
 from src.schemas.user_schemas import (
     ChangePasswordCredentials,
     CreateUserScheme,
@@ -23,6 +24,7 @@ from src.schemas.user_schemas import (
 )
 from src.services.user_service import UserService, get_user_service
 from src.task_queue.worker import send_forgot_password_msg, send_reset_password_msg
+from src.utils.cache import RedisCache
 from src.utils.password_manager import PasswordManager
 from src.utils.token_manager import TokenManager
 
@@ -163,3 +165,30 @@ async def logout(
     response.delete_cookie('stuffr_access')
     response.delete_cookie('stuffr_refresh')
     return 200
+
+
+@user_router.get('/user_favorite')
+async def get_user_favorite_list(
+    user_service: UserService = Depends(get_user_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+    cache: RedisCache = Depends(get_cache),
+) -> list[GetAnnouncementScheme]:
+    cache_key = f'user_favorite:{user.id}'
+    cached_values = await cache.get(key=cache_key)
+
+    if cached_values:
+        return [
+            GetAnnouncementScheme(**announcement_dict)
+            for announcement_dict in cached_values
+        ]
+
+    announcements = [
+        GetAnnouncementScheme(**announcement.__dict__)
+        for announcement in await user_service.get_user_favorite(
+            user=user, session=session
+        )
+    ]
+
+    await cache.set(cache_key, announcements)
+    return announcements

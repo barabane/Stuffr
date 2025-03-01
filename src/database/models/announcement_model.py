@@ -16,6 +16,8 @@ class Announcement(BaseModel, IdPkUUIDMixin, CreatedAtMixin, UpdatedAtMixin):
     title: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
     description: Mapped[str] = mapped_column(TEXT, nullable=False)
     price: Mapped[int] = mapped_column(INTEGER, nullable=True)
+    price_with_discount: Mapped[int] = mapped_column(INTEGER, nullable=True)
+    discount: Mapped[int] = mapped_column(nullable=True)
     currency: Mapped[str] = mapped_column(VARCHAR(3), nullable=False, default='RUB')
     status: Mapped[str] = mapped_column(
         VARCHAR(15), nullable=False, default=AnnouncementStatus.UNDER_REVIEW.value

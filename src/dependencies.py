@@ -1,5 +1,6 @@
 from fastapi import Request, Response
 from jwt.exceptions import ExpiredSignatureError, InvalidKeyError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database import session_maker
@@ -10,6 +11,7 @@ from src.exceptions import (
     UnauthorizedException,
 )
 from src.logging import logger
+from src.utils.cache import redis_cache
 from src.utils.token_manager import TokenManager
 
 
@@ -30,7 +32,12 @@ async def get_current_user(response: Response, request: Request) -> User | None:
                 )
             except ExpiredSignatureError:
                 logger.error('Token expired error')
-                user: User | None = await session.get(User, payload['sub'])
+                user = await session.execute(
+                    select(User).where(
+                        User.refresh_tokens.any(request.cookies['stuffr_refresh'])
+                    )
+                )
+                user = user.scalar_one()
                 user.refresh_tokens.remove(request.cookies['stuffr_refresh'])
                 await session.commit()
                 raise TokenExpiredException
@@ -50,3 +57,7 @@ async def get_current_user(response: Response, request: Request) -> User | None:
     except InvalidKeyError:
         logger.error('Invalid token error')
         raise GetTokenException
+
+
+async def get_cache():
+    yield redis_cache

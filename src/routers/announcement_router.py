@@ -6,11 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database import get_async_session
 from src.database.models.user_model import User
-from src.dependencies import get_current_user
+from src.dependencies import get_cache, get_current_user
 from src.exceptions import AnnouncementUnderReviewException, NotFoundException
 from src.schemas.announcement_schemas import (
     AnnouncementStatus,
     CreateAnnouncementOuterScheme,
+    CreateAnnouncementScheme,
     GetAnnouncementScheme,
     GetMyAnnouncementScheme,
     SearchParams,
@@ -21,7 +22,7 @@ from src.services.announcement_service import (
     AnnouncementService,
     get_announcement_service,
 )
-from src.utils.cache import redis_cache
+from src.utils.cache import RedisCache
 from src.utils.decorators import protect
 
 announcement_router = APIRouter(prefix='/announcement', tags=['Announcement'])
@@ -34,7 +35,10 @@ async def create_announcement(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
-    announcement_scheme.user_id = user.id
+    announcement_scheme = CreateAnnouncementScheme(
+        **announcement_scheme.model_dump(), user_id=user.id
+    )
+
     await announcement_service.add(
         announcement_service.schemas.create_scheme(**announcement_scheme.model_dump()),
         session=session,
@@ -117,12 +121,13 @@ async def get_announcement_catalog(
     search_params: SearchParams = Depends(),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     session: AsyncSession = Depends(get_async_session),
+    cache: RedisCache = Depends(get_cache),
 ) -> List[GetAnnouncementScheme]:
     filters = search_params.model_dump()
     filters['status'] = AnnouncementStatus.PUBLISHED.value
 
     cache_key = f'announcements:{search_params.offset}{search_params.limit}'
-    cached_values = await redis_cache.get(key=cache_key)
+    cached_values = await cache.get(key=cache_key)
 
     if cached_values:
         return [
@@ -137,7 +142,7 @@ async def get_announcement_catalog(
         )
     ]
 
-    await redis_cache.set(key=cache_key, value=announcements)
+    await cache.set(key=cache_key, value=announcements)
     return announcements
 
 
@@ -151,12 +156,13 @@ async def get_my_announcements(
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
+    cache: RedisCache = Depends(get_cache),
 ) -> List[GetMyAnnouncementScheme]:
     filters = search_params.model_dump()
     filters['user_id'] = user.id
 
     cache_key = f'announcements:{search_params.offset}{search_params.limit}{user.id}'
-    cached_values = await redis_cache.get(key=cache_key)
+    cached_values = await cache.get(key=cache_key)
 
     if cached_values:
         return [
@@ -171,8 +177,23 @@ async def get_my_announcements(
         )
     ]
 
-    await redis_cache.set(key=cache_key, value=announcements)
+    await cache.set(key=cache_key, value=announcements)
     return announcements
+
+
+@announcement_router.patch(
+    '/unpublish', tags=['AnnouncementUser'], response_model=GetMyAnnouncementScheme
+)
+async def unpublish_announcement(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> GetMyAnnouncementScheme:
+    announcement_model = await announcement_service.unpublish(
+        announcement_id=announcement_id, user=user, session=session
+    )
+    return GetMyAnnouncementScheme(**announcement_model.__dict__)
 
 
 @announcement_router.patch(
@@ -201,3 +222,37 @@ async def delete_announcement(
     session: AsyncSession = Depends(get_async_session),
 ):
     await announcement_service.delete(entity_id=announcement_id, session=session)
+
+
+@announcement_router.post('/add_favorite')
+async def add_to_favorite(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.add_to_favorite(
+        announcement_id=announcement_id, user=user, session=session
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={'details': 'Добавлено в список избранного'},
+    )
+
+
+@announcement_router.delete('/delete_favorite')
+async def delete_from_favorite(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    await announcement_service.delete_from_favorite(
+        announcement_id=announcement_id, user=user, session=session
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={'details': 'Удалено из списка избранного'},
+    )
