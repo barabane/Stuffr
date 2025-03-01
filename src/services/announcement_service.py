@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.models.announcement_model import Announcement
 from src.database.models.user_favorite_model import UserFavorite
 from src.database.models.user_model import User
+from src.exceptions import UserForbiddenException
 from src.logging import LogMessageScheme, logger
 from src.repositories.announcement_repository import get_announcement_repository
 from src.schemas.announcement_schemas import (
@@ -83,6 +84,18 @@ class AnnouncementService(BaseService):
             ),
             session=session,
         )
+
+    @logger_decorator
+    async def unpublish(self, announcement_id: str, user: User, session: AsyncSession):
+        announcement: Announcement = await session.get(
+            self.repository.model, announcement_id
+        )
+
+        if announcement.user_id != user.id:
+            raise UserForbiddenException
+
+        announcement.status = AnnouncementStatus.UNPUBLISHED.value
+        return announcement
 
 
 def get_announcement_service() -> AnnouncementService:

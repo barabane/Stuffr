@@ -182,6 +182,21 @@ async def get_my_announcements(
 
 
 @announcement_router.patch(
+    '/unpublish', tags=['AnnouncementUser'], response_model=GetMyAnnouncementScheme
+)
+async def unpublish_announcement(
+    announcement_id: str,
+    announcement_service: AnnouncementService = Depends(get_announcement_service),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+) -> GetMyAnnouncementScheme:
+    announcement_model = await announcement_service.unpublish(
+        announcement_id=announcement_id, user=user, session=session
+    )
+    return GetMyAnnouncementScheme(**announcement_model.__dict__)
+
+
+@announcement_router.patch(
     '/archive/{announcement_id}',
     tags=['AnnouncementUser'],
 )
