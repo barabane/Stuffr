@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from src.config import settings
 from src.database.models import *  # noqa: F403
-from src.database.models.announcement_image_model import AnnouncementImage  # noqa
+from src.database.models.announcement_media_model import AnnouncementMedia  # noqa
 from src.database.models.announcement_model import Announcement  # noqa
 from src.database.models.base_model import BaseModel
 from src.database.models.category_model import Category  # noqa

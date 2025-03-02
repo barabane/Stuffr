@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ announcement_router = APIRouter(prefix='/announcement', tags=['Announcement'])
 @announcement_router.post('', tags=['AnnouncementUser'])
 async def create_announcement(
     announcement_scheme: CreateAnnouncementOuterScheme,
+    medias: List[UploadFile] = File(..., min_length=1, max_length=5),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
@@ -38,22 +39,34 @@ async def create_announcement(
     announcement_scheme = CreateAnnouncementScheme(
         **announcement_scheme.model_dump(), user_id=user.id
     )
+    try:
+        announcement_model = await announcement_service.add(
+            announcement_service.schemas.create_scheme(
+                **announcement_scheme.model_dump()
+            ),
+            session=session,
+        )
 
-    await announcement_service.add(
-        announcement_service.schemas.create_scheme(**announcement_scheme.model_dump()),
-        session=session,
-    )
-
-    return JSONResponse(
-        status_code=201,
-        content={'details': 'Ваше объявление отправлено на модерацию'},
-    )
+        await announcement_service.add_media_to_announcement(
+            announcement_id=announcement_model.id,
+            medias=medias,
+            user=user,
+            session=session,
+        )
+        return JSONResponse(
+            status_code=201,
+            content={'details': 'Ваше объявление отправлено на модерацию'},
+        )
+    except Exception as e:
+        await session.rollback()
+        raise e
 
 
 @announcement_router.patch('/edit/{announcement_id}', tags=['AnnouncementUser'])
 async def edit_announcement(
     announcement_id: str,
     announcement_scheme: UpdateAnnouncementOuterScheme,
+    medias: List[UploadFile] = File(..., min_length=1, max_length=5),
     announcement_service: AnnouncementService = Depends(get_announcement_service),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
@@ -130,17 +143,9 @@ async def get_announcement_catalog(
     cached_values = await cache.get(key=cache_key)
 
     if cached_values:
-        return [
-            announcement_service.schemas.get_scheme(**announcement_dict)
-            for announcement_dict in cached_values
-        ]
+        return cached_values
 
-    announcements = [
-        announcement_service.schemas.get_scheme(**announcement_model.__dict__)
-        for announcement_model in await announcement_service.get_all(
-            filters=filters, session=session
-        )
-    ]
+    announcements = await announcement_service.get_all(filters=filters, session=session)
 
     await cache.set(key=cache_key, value=announcements)
     return announcements
@@ -148,7 +153,7 @@ async def get_announcement_catalog(
 
 @announcement_router.get(
     '/my_announcements',
-    response_model=List[GetMyAnnouncementScheme],
+    response_model=List[GetAnnouncementScheme],
     tags=['AnnouncementUser'],
 )
 async def get_my_announcements(
@@ -157,7 +162,7 @@ async def get_my_announcements(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
     cache: RedisCache = Depends(get_cache),
-) -> List[GetMyAnnouncementScheme]:
+) -> List[GetAnnouncementScheme]:
     filters = search_params.model_dump()
     filters['user_id'] = user.id
 
@@ -165,17 +170,9 @@ async def get_my_announcements(
     cached_values = await cache.get(key=cache_key)
 
     if cached_values:
-        return [
-            GetMyAnnouncementScheme(**announcement_dict)
-            for announcement_dict in cached_values
-        ]
+        return cached_values
 
-    announcements = [
-        GetMyAnnouncementScheme(**announcement_model.__dict__)
-        for announcement_model in await announcement_service.get_all(
-            filters=filters, session=session
-        )
-    ]
+    announcements = await announcement_service.get_all(filters=filters, session=session)
 
     await cache.set(key=cache_key, value=announcements)
     return announcements
@@ -221,7 +218,13 @@ async def delete_announcement(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    await announcement_service.delete(entity_id=announcement_id, session=session)
+    try:
+        await announcement_service.delete(
+            announcement_id=announcement_id, user=user, session=session
+        )
+    except Exception as e:
+        await session.rollback()
+        raise e
 
 
 @announcement_router.post('/add_favorite')

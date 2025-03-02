@@ -43,13 +43,13 @@ async def get_current_user(response: Response, request: Request) -> User | None:
                 raise TokenExpiredException
 
             user: User | None = await session.get(User, payload['sub'])
+            user.refresh_tokens.remove(request.cookies['stuffr_refresh'])
             access_token, refresh_token = TokenManager.set_tokens(
                 {
                     'sub': str(user.id),
                 },
                 response=response,
             )
-            user.refresh_tokens.remove(request.cookies['stuffr_refresh'])
             user.refresh_tokens.append(refresh_token)
             await session.commit()
             user: User | None = await session.get(User, payload['sub'])
