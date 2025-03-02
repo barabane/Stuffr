@@ -1,7 +1,8 @@
+import json
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, HttpUrl, computed_field, model_validator
 
 from src.schemas.base_schemas import BaseSchemas
 from src.schemas.common import OffsetLimitParams, StringUUIDField
@@ -36,6 +37,7 @@ class GetAnnouncementScheme(BaseModel):
     discount: Optional[int] = Field(default=None, ge=1, le=99)
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     user_id: StringUUIDField
+    medias: List[HttpUrl] = []
 
 
 class GetMyAnnouncementScheme(GetAnnouncementScheme):
@@ -49,6 +51,13 @@ class CreateAnnouncementOuterScheme(BaseModel):
     discount: Optional[int] = Field(default=None, ge=1, le=99)
     currency: Optional[str] = Field(min_length=3, max_length=3, default='RUB')
     category_id: int = Field(ge=1)
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_if_string(cls, data):
+        if isinstance(data, str):
+            return json.loads(data)
+        return data
 
     @computed_field
     @property

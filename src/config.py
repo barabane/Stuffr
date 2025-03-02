@@ -28,6 +28,12 @@ class Settings(BaseSettings):
 
     REDIS_URL: str
 
+    S3_URL: str
+    S3_BUCKET: str
+    S3_REGION: str
+    S3_ACCESS: str
+    S3_SECRET: str
+
     model_config = SettingsConfigDict(env_file='.env')
 
 
